@@ -1,0 +1,12 @@
+# This file is used internally by FFMPEG.
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/2428136012_2212958607_223132457.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/2826612122_2400307857_4004574866.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/2826612122_775239748_3856886132.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/2826612122_1270204586_59962261.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/807146173_817355558_2706146348.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/2773004216_2970241761_2398030284.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/1389718960_1111175179_254830308.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/1389718960_647045563_3364179754.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/3598251032_4237729525_1963197768.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/1241577103_2376508062_1419778772.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/720p30/partial_movie_files/FourierTransform3DScene/3091941297_2631580503_1749188889.mp4'

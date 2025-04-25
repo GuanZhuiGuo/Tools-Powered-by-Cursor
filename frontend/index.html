@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manim 3D函数可视化</title>
+    <!-- Material Design 组件库 -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <!-- Plotly.js 3D渲染库 -->
+    <script src="https://cdn.plot.ly/plotly-2.20.0.min.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', 'Microsoft YaHei', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            padding: 20px;
+        }
+        .card {
+            border-radius: 8px;
+        }
+        .card-title {
+            font-weight: 500 !important;
+        }
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .preview-card {
+            flex: 1 1 65%;
+            min-width: 300px;
+        }
+        .controls-card {
+            flex: 1 1 30%;
+            min-width: 300px;
+        }
+        .preview {
+            height: 600px;
+            background-color: #fff;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .loading {
+            font-size: 18px;
+            color: #666;
+            text-align: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background: rgba(255,255,255,0.8);
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .function-examples {
+            margin-top: 20px;
+        }
+        .function-chip {
+            margin: 5px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .parameter-value {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .help-text {
+            font-size: 0.85rem;
+            color: #777;
+            margin: 5px 0 15px;
+        }
+        .tabs .tab a {
+            color: rgba(0, 0, 0, 0.7);
+        }
+        .tabs .tab a:hover {
+            color: rgba(0, 0, 0, 1);
+        }
+        .tabs .tab a.active {
+            color: #2196F3;
+        }
+        .tabs .indicator {
+            background-color: #2196F3;
+        }
+        #plot-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <nav class="blue darken-2">
+        <div class="nav-wrapper container">
+            <a href="#" class="brand-logo">3D函数可视化</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="preview-container">
+            <div class="card preview-card">
+                <div class="card-content">
+                    <span class="card-title">函数预览</span>
+                    <div class="preview" id="preview-box">
+                        <div id="plot-container"></div>
+                        <div class="loading" id="loading-indicator">渲染中...</div>
+                    </div>
+                    <div class="help-text center-align">
+                        您可以直接用鼠标拖拽旋转视角，使用滚轮缩放
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card controls-card">
+                <div class="card-content">
+                    <span class="card-title">控制面板</span>
+                    
+                    <ul class="tabs">
+                        <li class="tab"><a class="active" href="#tab-surface">曲面函数</a></li>
+                        <li class="tab"><a href="#tab-parametric">参数方程</a></li>
+                    </ul>
+                    
+                    <div id="tab-surface" class="col s12">
+                        <div class="input-field">
+                            <input type="text" id="function" value="0.5 * Math.sin(2 * Math.PI * x) * Math.cos(2 * Math.PI * y)">
+                            <label for="function" class="active">函数表达式 z = f(x,y)</label>
+                            <span class="help-text">
+                                使用 x, y 作为变量，例如 Math.sin(x) + Math.cos(y)
+                            </span>
+                        </div>
+                        
+                        <div class="function-examples">
+                            <p>示例函数：</p>
+                            <div class="chip function-chip" data-function="0.5 * Math.sin(2 * Math.PI * x) * Math.cos(2 * Math.PI * y)">
+                                正弦-余弦波
+                            </div>
+                            <div class="chip function-chip" data-function="Math.sin(Math.sqrt(x*x + y*y))">
+                                波纹函数
+                            </div>
+                            <div class="chip function-chip" data-function="Math.exp(-(x*x + y*y) / 2) / (2 * Math.PI)">
+                                高斯分布
+                            </div>
+                            <div class="chip function-chip" data-function="Math.sin(3 * x) * Math.cos(3 * y) / 3">
+                                正弦网格
+                            </div>
+                            <div class="chip function-chip" data-function="x*x - y*y">
+                                双曲抛物面
+                            </div>
+                            <div class="chip function-chip" data-function="Math.sin(x*y)">
+                                交互正弦
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="tab-parametric" class="col s12">
+                        <div class="input-field">
+                            <input type="text" id="param-x" value="Math.cos(u) * (4 + Math.cos(v))">
+                            <label for="param-x" class="active">x(u,v)</label>
+                        </div>
+                        <div class="input-field">
+                            <input type="text" id="param-y" value="Math.sin(u) * (4 + Math.cos(v))">
+                            <label for="param-y" class="active">y(u,v)</label>
+                        </div>
+                        <div class="input-field">
+                            <input type="text" id="param-z" value="Math.sin(v)">
+                            <label for="param-z" class="active">z(u,v)</label>
+                        </div>
+                        <div class="input-field">
+                            <input type="text" id="param-u-range" value="0,2*Math.PI,0.1">
+                            <label for="param-u-range" class="active">u范围 (起点,终点,步长)</label>
+                        </div>
+                        <div class="input-field">
+                            <input type="text" id="param-v-range" value="0,2*Math.PI,0.1">
+                            <label for="param-v-range" class="active">v范围 (起点,终点,步长)</label>
+                        </div>
+                        
+                        <div class="function-examples">
+                            <p>参数曲面示例：</p>
+                            <div class="chip param-chip" 
+                                 data-x="Math.cos(u) * (4 + Math.cos(v))" 
+                                 data-y="Math.sin(u) * (4 + Math.cos(v))" 
+                                 data-z="Math.sin(v)"
+                                 data-urange="0,2*Math.PI,0.1"
+                                 data-vrange="0,2*Math.PI,0.1">
+                                圆环
+                            </div>
+                            <div class="chip param-chip"
+                                 data-x="Math.sin(u) * Math.cos(v)"
+                                 data-y="Math.sin(u) * Math.sin(v)"
+                                 data-z="Math.cos(u)"
+                                 data-urange="0,Math.PI,0.05"
+                                 data-vrange="0,2*Math.PI,0.05">
+                                球体
+                            </div>
+                            <div class="chip param-chip"
+                                 data-x="(1 + 0.5*Math.cos(v)) * Math.cos(u)"
+                                 data-y="(1 + 0.5*Math.cos(v)) * Math.sin(u)"
+                                 data-z="0.5 * Math.sin(v)"
+                                 data-urange="0,2*Math.PI,0.05"
+                                 data-vrange="0,2*Math.PI,0.05">
+                                莫比乌斯带
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="display-options">
+                        <p>显示选项：</p>
+                        <div class="input-field">
+                            <select id="colorscale">
+                                <option value="Viridis">Viridis (默认)</option>
+                                <option value="Jet">Jet</option>
+                                <option value="Hot">Hot</option>
+                                <option value="Electric">Electric</option>
+                                <option value="Portland">Portland</option>
+                                <option value="Rainbow">Rainbow</option>
+                            </select>
+                            <label>颜色方案</label>
+                        </div>
+                        
+                        <div class="slider-label">
+                            <label for="resolution">分辨率:</label>
+                            <span id="resolution-value" class="parameter-value">40</span>
+                        </div>
+                        <p class="range-field">
+                            <input type="range" id="resolution" min="10" max="100" step="5" value="40">
+                        </p>
+                    </div>
+                    
+                    <button id="generate-btn" class="btn waves-effect waves-light blue darken-2" style="width: 100%;">
+                        渲染函数
+                        <i class="material-icons right">3d_rotation</i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化Materialize组件
+            M.AutoInit();
+            
+            // 获取DOM元素
+            const functionInput = document.getElementById('function');
+            const paramXInput = document.getElementById('param-x');
+            const paramYInput = document.getElementById('param-y');
+            const paramZInput = document.getElementById('param-z');
+            const paramURangeInput = document.getElementById('param-u-range');
+            const paramVRangeInput = document.getElementById('param-v-range');
+            const resolutionSlider = document.getElementById('resolution');
+            const colorscaleSelect = document.getElementById('colorscale');
+            const generateBtn = document.getElementById('generate-btn');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const plot = document.getElementById('plot-container');
+            
+            // 更新显示值
+            resolutionSlider.oninput = () => document.getElementById('resolution-value').textContent = resolutionSlider.value;
+            
+            // 示例函数点击事件
+            document.querySelectorAll('.function-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    functionInput.value = chip.dataset.function;
+                    // 激活label
+                    M.updateTextFields();
+                    // 切换到曲面标签
+                    M.Tabs.getInstance(document.querySelector('.tabs')).select('tab-surface');
+                });
+            });
+            
+            // 参数曲面示例点击事件
+            document.querySelectorAll('.param-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    paramXInput.value = chip.dataset.x;
+                    paramYInput.value = chip.dataset.y;
+                    paramZInput.value = chip.dataset.z;
+                    paramURangeInput.value = chip.dataset.urange;
+                    paramVRangeInput.value = chip.dataset.vrange;
+                    // 激活label
+                    M.updateTextFields();
+                    // 切换到参数标签
+                    M.Tabs.getInstance(document.querySelector('.tabs')).select('tab-parametric');
+                });
+            });
+            
+            // 根据函数表达式生成3D曲面数据
+            function generateSurfaceData(func, resolution = 40) {
+                // 创建x和y的范围
+                const range = [-2, 2];
+                const step = (range[1] - range[0]) / resolution;
+                
+                // 生成网格数据
+                const x = [];
+                const y = [];
+                const z = [];
+                
+                for (let i = 0; i <= resolution; i++) {
+                    const xi = range[0] + i * step;
+                    const row = [];
+                    x.push(xi);
+                    
+                    for (let j = 0; j <= resolution; j++) {
+                        const yi = range[0] + j * step;
+                        if (i === 0) y.push(yi);
+                        
+                        try {
+                            // 安全地计算z值
+                            const zi = evaluateFunction(func, xi, yi);
+                            row.push(zi);
+                        } catch (e) {
+                            console.error('函数计算错误:', e);
+                            row.push(null); // 使用null表示无效点
+                        }
+                    }
+                    z.push(row);
+                }
+                
+                return { x, y, z };
+            }
+            
+            // 生成参数曲面数据
+            function generateParametricData(xFunc, yFunc, zFunc, uRange, vRange, resolution = 40) {
+                // 解析u和v的范围
+                const [uMin, uMax, uStep] = parseRangeString(uRange);
+                const [vMin, vMax, vStep] = parseRangeString(vRange);
+                
+                // 计算u和v的点数
+                const uPoints = Math.floor((uMax - uMin) / uStep) + 1;
+                const vPoints = Math.floor((vMax - vMin) / vStep) + 1;
+                
+                // 生成网格数据
+                const x = [];
+                const y = [];
+                const z = [];
+                
+                for (let i = 0; i < uPoints; i++) {
+                    const u = uMin + i * uStep;
+                    const xRow = [];
+                    const yRow = [];
+                    const zRow = [];
+                    
+                    for (let j = 0; j < vPoints; j++) {
+                        const v = vMin + j * vStep;
+                        
+                        try {
+                            // 计算(x,y,z)坐标
+                            const xi = evaluateParametricFunction(xFunc, u, v);
+                            const yi = evaluateParametricFunction(yFunc, u, v);
+                            const zi = evaluateParametricFunction(zFunc, u, v);
+                            
+                            xRow.push(xi);
+                            yRow.push(yi);
+                            zRow.push(zi);
+                        } catch (e) {
+                            console.error('参数方程计算错误:', e);
+                            xRow.push(null);
+                            yRow.push(null);
+                            zRow.push(null);
+                        }
+                    }
+                    
+                    x.push(xRow);
+                    y.push(yRow);
+                    z.push(zRow);
+                }
+                
+                return { x, y, z };
+            }
+            
+            // 解析范围字符串
+            function parseRangeString(rangeStr) {
+                const parts = rangeStr.split(',');
+                if (parts.length !== 3) {
+                    throw new Error('范围格式错误，应为"起点,终点,步长"');
+                }
+                
+                return parts.map(part => {
+                    return eval(part.trim()); // 使用eval计算表达式
+                });
+            }
+            
+            // 安全地计算函数值
+            function evaluateFunction(funcStr, x, y) {
+                try {
+                    // 将字符串转为函数并计算
+                    return Function('x', 'y', `"use strict"; return ${funcStr};`)(x, y);
+                } catch (e) {
+                    console.error('函数求值错误:', e);
+                    return NaN;
+                }
+            }
+            
+            // 计算参数方程
+            function evaluateParametricFunction(funcStr, u, v) {
+                try {
+                    return Function('u', 'v', `"use strict"; return ${funcStr};`)(u, v);
+                } catch (e) {
+                    console.error('参数方程求值错误:', e);
+                    return NaN;
+                }
+            }
+            
+            // 渲染3D图表
+            function renderPlot(data, colorscale = 'Viridis') {
+                const layout = {
+                    title: '',
+                    autosize: true,
+                    margin: {
+                        l: 0,
+                        r: 0,
+                        b: 0,
+                        t: 0,
+                        pad: 0
+                    },
+                    scene: {
+                        xaxis: { title: 'X' },
+                        yaxis: { title: 'Y' },
+                        zaxis: { title: 'Z' },
+                        aspectratio: { x: 1, y: 1, z: 0.7 },
+                        camera: {
+                            eye: { x: 1.5, y: 1.5, z: 1 }
+                        }
+                    }
+                };
+                
+                const surfaceData = [{
+                    type: 'surface',
+                    ...data,
+                    colorscale: colorscale,
+                    contours: {
+                        z: {
+                            show: true,
+                            usecolormap: true,
+                            highlightcolor: "#42a5f5",
+                            project: { z: true }
+                        }
+                    }
+                }];
+                
+                Plotly.newPlot('plot-container', surfaceData, layout, {
+                    responsive: true
+                });
+            }
+            
+            // 生成按钮点击事件
+            generateBtn.addEventListener('click', () => {
+                loadingIndicator.style.display = 'block';
+                
+                // 延迟一点执行，以便UI可以更新
+                setTimeout(() => {
+                    try {
+                        const resolution = parseInt(resolutionSlider.value);
+                        const colorscale = colorscaleSelect.value;
+                        let data;
+                        
+                        // 检查当前选中的标签
+                        const activeTab = M.Tabs.getInstance(document.querySelector('.tabs')).index;
+                        
+                        if (activeTab === 0) { // 曲面函数
+                            const funcStr = functionInput.value;
+                            data = generateSurfaceData(funcStr, resolution);
+                        } else { // 参数方程
+                            const xFunc = paramXInput.value;
+                            const yFunc = paramYInput.value;
+                            const zFunc = paramZInput.value;
+                            const uRange = paramURangeInput.value;
+                            const vRange = paramVRangeInput.value;
+                            data = generateParametricData(xFunc, yFunc, zFunc, uRange, vRange, resolution);
+                        }
+                        
+                        renderPlot(data, colorscale);
+                        
+                    } catch (e) {
+                        console.error('渲染错误:', e);
+                        M.toast({ html: `渲染错误: ${e.message}`, classes: 'red' });
+                    } finally {
+                        loadingIndicator.style.display = 'none';
+                    }
+                }, 50);
+            });
+            
+            // 初始渲染
+            generateBtn.click();
+        });
+    </script>
+</body>
+</html> 

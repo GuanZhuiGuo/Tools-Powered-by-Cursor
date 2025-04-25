@@ -1,0 +1,11 @@
+# This file is used internally by FFMPEG.
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/480p15/partial_movie_files/FourierTransformScene/1185818338_620348320_223132457.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/480p15/partial_movie_files/FourierTransformScene/624642324_3986977396_3839993296.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/480p15/partial_movie_files/FourierTransformScene/624642324_1754310298_388113957.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/480p15/partial_movie_files/FourierTransformScene/624642324_2957309164_1474027902.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/480p15/partial_movie_files/FourierTransformScene/624642324_1754310298_167513579.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/480p15/partial_movie_files/FourierTransformScene/624642324_2988867291_3633257300.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/480p15/partial_movie_files/FourierTransformScene/624642324_146224649_306919391.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/480p15/partial_movie_files/FourierTransformScene/624642324_1754310298_3303914305.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/480p15/partial_movie_files/FourierTransformScene/624642324_3462204253_3045431242.mp4'
+file 'file:D:/Users/K_han/PycharmProjects/manimproject/media/videos/fourier_transform_animation/480p15/partial_movie_files/FourierTransformScene/624642324_2408024828_783930594.mp4'

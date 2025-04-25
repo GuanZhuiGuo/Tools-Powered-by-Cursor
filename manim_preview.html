@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manim动画预览</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .preview {
+            flex: 1 1 60%;
+            min-width: 300px;
+            height: 500px;
+            background-color: #eee;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            margin-right: 20px;
+        }
+        .controls {
+            flex: 1 1 30%;
+            min-width: 250px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        input[type="range"] {
+            padding: 0;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .loading {
+            font-size: 18px;
+            color: #666;
+        }
+        .preview img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        .status-bar {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>交互式Manim动画生成器</h1>
+        
+        <div class="preview-container">
+            <div class="preview" id="preview-box">
+                <span class="loading">请点击生成预览按钮</span>
+            </div>
+            
+            <div class="controls">
+                <label for="function">函数表达式:</label>
+                <input type="text" id="function" value="0.5 * np.sin(2 * np.pi * t)" 
+                       placeholder="例如: 0.5 * np.sin(2 * np.pi * t)">
+                
+                <label for="phi">相机角度 φ (Phi): <span id="phi-value">75</span>°</label>
+                <input type="range" id="phi" min="0" max="360" value="75">
+                
+                <label for="theta">相机角度 θ (Theta): <span id="theta-value">30</span>°</label>
+                <input type="range" id="theta" min="-180" max="180" value="30">
+                
+                <label for="zoom">缩放级别: <span id="zoom-value">0.7</span></label>
+                <input type="range" id="zoom" min="0.1" max="2" step="0.1" value="0.7">
+                
+                <button id="generate-btn">生成预览</button>
+                
+                <div class="status-bar" id="status-box">状态: 就绪</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取DOM元素
+        const previewBox = document.getElementById('preview-box');
+        const statusBox = document.getElementById('status-box');
+        const functionInput = document.getElementById('function');
+        const phiSlider = document.getElementById('phi');
+        const thetaSlider = document.getElementById('theta');
+        const zoomSlider = document.getElementById('zoom');
+        const generateBtn = document.getElementById('generate-btn');
+        
+        // 简单的日志函数
+        function log(message) {
+            console.log(message);
+            statusBox.textContent += '\n' + message;
+            statusBox.scrollTop = statusBox.scrollHeight;
+        }
+        
+        // 清除日志
+        function clearLog() {
+            statusBox.textContent = '状态: ';
+        }
+        
+        // 更新显示值
+        phiSlider.oninput = () => document.getElementById('phi-value').textContent = phiSlider.value;
+        thetaSlider.oninput = () => document.getElementById('theta-value').textContent = thetaSlider.value;
+        zoomSlider.oninput = () => document.getElementById('zoom-value').textContent = zoomSlider.value;
+        
+        // 生成预览
+        generateBtn.addEventListener('click', async () => {
+            previewBox.innerHTML = '<span class="loading">生成预览中...</span>';
+            generateBtn.disabled = true;
+            
+            clearLog();
+            log('发送请求到后端服务器...');
+            
+            try {
+                // 直接获取本地生成的图像的路径
+                const imagePath = prompt('请输入Manim生成的图像路径:',
+                    'D:/Users/K_han/PycharmProjects/manimproject/media/images/preview.png');
+                
+                if (!imagePath) {
+                    previewBox.innerHTML = '<span class="loading">已取消</span>';
+                    generateBtn.disabled = false;
+                    return;
+                }
+                
+                log(`尝试加载图像: ${imagePath}`);
+                
+                // 创建图像元素
+                const img = new Image();
+                img.onload = () => {
+                    log(`图像加载成功: ${img.width} x ${img.height}`);
+                    previewBox.innerHTML = '';
+                    previewBox.appendChild(img);
+                };
+                img.onerror = (err) => {
+                    log(`图像加载失败`);
+                    previewBox.innerHTML = '<span class="loading">图像加载失败<br>请确认路径是否正确</span>';
+                };
+                
+                img.style.maxWidth = '100%';
+                img.style.maxHeight = '100%';
+                
+                // 尝试加载本地图像
+                try {
+                    img.src = 'file://' + imagePath.replace(/\\/g, '/');
+                    log(`设置图像源: ${img.src}`);
+                } catch (err) {
+                    log(`设置图像源时出错: ${err.message}`);
+                    previewBox.innerHTML = '<span class="loading">无法加载图像<br>请确保路径正确</span>';
+                }
+            } catch (error) {
+                log(`错误: ${error.message}`);
+                previewBox.innerHTML = `<span class="loading">错误: ${error.message}</span>`;
+            }
+            
+            generateBtn.disabled = false;
+        });
+    </script>
+</body>
+</html> 
