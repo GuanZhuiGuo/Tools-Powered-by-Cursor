@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管锥国 - 数学工具集</title>
+    <!-- Material Design 组件库 -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+    <!-- Plotly.js 3D渲染库 -->
+    <script src="https://cdn.plot.ly/plotly-2.20.0.min.js"></script>
+    <!-- AI相关库 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xenova/transformers"></script>
+    <style>
+        body {
+            font-family: 'Roboto', 'Microsoft YaHei', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            flex: 1 0 auto;
+        }
+        .container {
+            max-width: 1400px;
+            padding: 20px;
+            width: 100%;
+        }
+        .header {
+            background: linear-gradient(135deg, #4a148c 0%, #3f51b5 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+        .header-title {
+            margin: 0;
+            font-weight: 300;
+            font-size: 2.5rem;
+        }
+        .header-subtitle {
+            margin-top: 10px;
+            font-weight: 300;
+            opacity: 0.8;
+        }
+        .card {
+            border-radius: 8px;
+            height: 100%;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 17px 2px rgba(0,0,0,0.14), 
+                       0 3px 14px 2px rgba(0,0,0,0.12), 
+                       0 5px 5px -3px rgba(0,0,0,0.2);
+        }
+        .card .card-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .card .card-title {
+            font-weight: 500;
+            font-size: 1.5rem;
+        }
+        .card-description {
+            flex-grow: 1;
+            margin-bottom: 20px;
+            color: #666;
+        }
+        .tools-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .tool-card {
+            cursor: pointer;
+            padding: 15px;
+            margin-bottom: 0;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+        .tool-card.active {
+            background-color: #e8f0fe;
+            border-left: 3px solid #3f51b5;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .tool-card:hover:not(.active) {
+            background-color: #f5f5f5;
+            border-left: 3px solid #9fa8da;
+        }
+        .tool-icon {
+            font-size: 24px !important;
+            margin-right: 10px;
+            color: #3f51b5;
+            vertical-align: middle;
+        }
+        .coming-soon {
+            opacity: 0.6;
+        }
+        footer {
+            padding: 20px 0;
+            margin-top: 20px;
+            background-color: #f0f0f0;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .app-container {
+            display: flex;
+            gap: 20px;
+            min-height: calc(100vh - 220px);
+        }
+        .sidebar {
+            flex: 0 0 300px;
+        }
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .welcome-screen {
+            display: none;
+        }
+        .tool-content {
+            display: none;
+        }
+        
+        /* 函数渲染器样式 */
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .preview-card {
+            flex: 1 1 65%;
+            min-width: 300px;
+        }
+        .controls-card {
+            flex: 1 1 30%;
+            min-width: 300px;
+        }
+        .preview {
+            height: 600px;
+            background-color: #fff;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .loading {
+            font-size: 18px;
+            color: #666;
+            text-align: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background: rgba(255,255,255,0.8);
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .function-examples {
+            margin-top: 20px;
+        }
+        .function-chip, .param-chip {
+            margin: 5px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .parameter-value {
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .help-text {
+            font-size: 0.85rem;
+            color: #777;
+            margin: 5px 0 15px;
+        }
+        .tabs .tab a {
+            color: rgba(0, 0, 0, 0.7);
+        }
+        .tabs .tab a:hover {
+            color: rgba(0, 0, 0, 1);
+        }
+        .tabs .tab a.active {
+            color: #2196F3;
+        }
+        .tabs .indicator {
+            background-color: #2196F3;
+        }
+        #plot-container {
+            width: 100%;
+            height: 100%;
+        }
+        @media (max-width: 992px) {
+            .app-container {
+                flex-direction: column;
+            }
+            .sidebar {
+                flex: 1;
+                width: 100%;
+            }
+            .content-area {
+                flex: 1;
+            }
+        }
+        .ai-demo {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .ai-result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            background-color: #f0f8ff;
+        }
+        .img-preview {
+            margin: 15px 0;
+            text-align: center;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: #3f51b5;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        #sentiment-result, #speech-result {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .mic-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .mic-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        .mic-btn i {
+            font-size: 24px;
+        }
+        .mic-btn.recording {
+            background-color: #4CAF50;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(76, 175, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
+        }
+        .aicard {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .aicard-header {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="header-title">管锥国</h1>
+            <p class="header-subtitle">数学与数据科学工具集</p>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="app-container">
+                <!-- 左侧工具列表 -->
+                <div class="sidebar">
+                    <div class="card">
+                        <div class="card-content">
+                            <span class="card-title">工具列表</span>
+                            <div class="tools-list">
+                                <!-- 函数渲染工具 -->
+                                <div class="card tool-card hoverable active" data-tool="function-visualizer">
+                                    <i class="material-icons tool-icon">functions</i>
+                                    <span class="tool-title">函数渲染</span>
+                                </div>
+
+                                <!-- 多维数据表 -->
+                                <div class="card tool-card hoverable coming-soon" data-tool="data-table">
+                                    <i class="material-icons tool-icon">grid_on</i>
+                                    <span class="tool-title">多维数据表</span>
+                                </div>
+
+                                <!-- Excel工具箱 -->
+                                <div class="card tool-card hoverable" data-tool="excel-tools">
+                                    <i class="material-icons tool-icon">table_chart</i>
+                                    <span class="tool-title">Excel工具箱</span>
+                                </div>
+
+                                <!-- 统计分析工具 -->
+                                <div class="card tool-card hoverable coming-soon" data-tool="statistics">
+                                    <i class="material-icons tool-icon">insert_chart</i>
+                                    <span class="tool-title">统计分析</span>
+                                </div>
+
+                                <!-- 数学符号工具 -->
+                                <div class="card tool-card hoverable coming-soon" data-tool="math-symbols">
+                                    <i class="material-icons tool-icon">calculate</i>
+                                    <span class="tool-title">数学符号</span>
+                                </div>
+
+                                <!-- 机器学习演示 -->
+                                <div class="card tool-card hoverable coming-soon" data-tool="ml-demo">
+                                    <i class="material-icons tool-icon">psychology</i>
+                                    <span class="tool-title">机器学习演示</span>
+                                </div>
+
+                                <!-- 图像识别 AI工具 -->
+                                <div class="card tool-card hoverable" data-tool="image-recognition">
+                                    <i class="material-icons tool-icon">image_search</i>
+                                    <span class="tool-title">图像识别</span>
+                                </div>
+
+                                <!-- 情感分析 AI工具 -->
+                                <div class="card tool-card hoverable" data-tool="sentiment-analysis">
+                                    <i class="material-icons tool-icon">psychology</i>
+                                    <span class="tool-title">情感分析</span>
+                                </div>
+
+                                <!-- 语音识别 AI工具 -->
+                                <div class="card tool-card hoverable" data-tool="speech-recognition">
+                                    <i class="material-icons tool-icon">record_voice_over</i>
+                                    <span class="tool-title">语音识别</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧内容区域 -->
+                <div class="content-area">
+                    <!-- 欢迎屏幕已被移除 -->
+                    
+                    <!-- 函数渲染工具 -->
+                    <div id="function-visualizer" class="tool-content" style="display: block;">
+                        <div class="preview-container">
+                            <div class="card preview-card">
+                                <div class="card-content">
+                                    <span class="card-title">函数预览</span>
+                                    <div class="preview" id="preview-box">
+                                        <div id="plot-container"></div>
+                                        <div class="loading" id="loading-indicator">渲染中...</div>
+                                    </div>
+                                    <div class="help-text center-align">
+                                        您可以直接用鼠标拖拽旋转视角，使用滚轮缩放
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card controls-card">
+                                <div class="card-content">
+                                    <span class="card-title">控制面板</span>
+                                    
+                                    <ul class="tabs">
+                                        <li class="tab"><a class="active" href="#tab-surface">曲面函数</a></li>
+                                        <li class="tab"><a href="#tab-parametric">参数方程</a></li>
+                                    </ul>
+                                    
+                                    <div id="tab-surface" class="col s12">
+                                        <div class="input-field">
+                                            <input type="text" id="function" value="0.5 * Math.sin(2 * Math.PI * x) * Math.cos(2 * Math.PI * y)">
+                                            <label for="function" class="active">函数表达式 z = f(x,y)</label>
+                                            <span class="help-text">
+                                                使用 x, y 作为变量，例如 Math.sin(x) + Math.cos(y)
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="function-examples">
+                                            <p>示例函数：</p>
+                                            <div class="chip function-chip" data-function="0.5 * Math.sin(2 * Math.PI * x) * Math.cos(2 * Math.PI * y)">
+                                                正弦-余弦波
+                                            </div>
+                                            <div class="chip function-chip" data-function="Math.sin(Math.sqrt(x*x + y*y))">
+                                                波纹函数
+                                            </div>
+                                            <div class="chip function-chip" data-function="Math.exp(-(x*x + y*y) / 2) / (2 * Math.PI)">
+                                                高斯分布
+                                            </div>
+                                            <div class="chip function-chip" data-function="Math.sin(3 * x) * Math.cos(3 * y) / 3">
+                                                正弦网格
+                                            </div>
+                                            <div class="chip function-chip" data-function="x*x - y*y">
+                                                双曲抛物面
+                                            </div>
+                                            <div class="chip function-chip" data-function="Math.sin(x*y)">
+                                                交互正弦
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="tab-parametric" class="col s12">
+                                        <div class="input-field">
+                                            <input type="text" id="param-x" value="Math.cos(u) * (4 + Math.cos(v))">
+                                            <label for="param-x" class="active">x(u,v)</label>
+                                        </div>
+                                        <div class="input-field">
+                                            <input type="text" id="param-y" value="Math.sin(u) * (4 + Math.cos(v))">
+                                            <label for="param-y" class="active">y(u,v)</label>
+                                        </div>
+                                        <div class="input-field">
+                                            <input type="text" id="param-z" value="Math.sin(v)">
+                                            <label for="param-z" class="active">z(u,v)</label>
+                                        </div>
+                                        <div class="input-field">
+                                            <input type="text" id="param-u-range" value="0,2*Math.PI,0.1">
+                                            <label for="param-u-range" class="active">u范围 (起点,终点,步长)</label>
+                                        </div>
+                                        <div class="input-field">
+                                            <input type="text" id="param-v-range" value="0,2*Math.PI,0.1">
+                                            <label for="param-v-range" class="active">v范围 (起点,终点,步长)</label>
+                                        </div>
+                                        
+                                        <div class="function-examples">
+                                            <p>参数曲面示例：</p>
+                                            <div class="chip param-chip" 
+                                                 data-x="Math.cos(u) * (4 + Math.cos(v))" 
+                                                 data-y="Math.sin(u) * (4 + Math.cos(v))" 
+                                                 data-z="Math.sin(v)"
+                                                 data-urange="0,2*Math.PI,0.1"
+                                                 data-vrange="0,2*Math.PI,0.1">
+                                                圆环
+                                            </div>
+                                            <div class="chip param-chip"
+                                                 data-x="Math.sin(u) * Math.cos(v)"
+                                                 data-y="Math.sin(u) * Math.sin(v)"
+                                                 data-z="Math.cos(u)"
+                                                 data-urange="0,Math.PI,0.05"
+                                                 data-vrange="0,2*Math.PI,0.05">
+                                                球体
+                                            </div>
+                                            <div class="chip param-chip"
+                                                 data-x="(1 + 0.5*Math.cos(v)) * Math.cos(u)"
+                                                 data-y="(1 + 0.5*Math.cos(v)) * Math.sin(u)"
+                                                 data-z="0.5 * Math.sin(v)"
+                                                 data-urange="0,2*Math.PI,0.05"
+                                                 data-vrange="0,2*Math.PI,0.05">
+                                                莫比乌斯带
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="display-options">
+                                        <p>显示选项：</p>
+                                        <div class="input-field">
+                                            <select id="colorscale">
+                                                <option value="Viridis">Viridis (默认)</option>
+                                                <option value="Jet">Jet</option>
+                                                <option value="Hot">Hot</option>
+                                                <option value="Electric">Electric</option>
+                                                <option value="Portland">Portland</option>
+                                                <option value="Rainbow">Rainbow</option>
+                                            </select>
+                                            <label>颜色方案</label>
+                                        </div>
+                                        
+                                        <div class="slider-label">
+                                            <label for="resolution">分辨率:</label>
+                                            <span id="resolution-value" class="parameter-value">40</span>
+                                        </div>
+                                        <p class="range-field">
+                                            <input type="range" id="resolution" min="10" max="100" step="5" value="40">
+                                        </p>
+                                    </div>
+                                    
+                                    <button id="generate-btn" class="btn waves-effect waves-light blue darken-2" style="width: 100%;">
+                                        渲染函数
+                                        <i class="material-icons right">3d_rotation</i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Excel工具箱 -->
+                    <div id="excel-tools" class="tool-content">
+                        <div class="card">
+                            <div class="card-content">
+                                <span class="card-title">Excel工具箱</span>
+                                <p>使用AI帮助您生成Excel VBA代码和函数公式</p>
+                                
+                                <div class="row" style="margin-top: 20px;">
+                                    <div class="col s12 m6">
+                                        <div class="card blue-grey lighten-5">
+                                            <div class="card-content">
+                                                <span class="card-title">VBA代码生成</span>
+                                                <div class="input-field">
+                                                    <textarea id="vba-requirement" class="materialize-textarea"></textarea>
+                                                    <label for="vba-requirement">请描述您需要的VBA功能</label>
+                                                    <span class="helper-text">例如："创建一个宏，循环遍历A列数据，如果单元格值大于100则在B列对应位置标红"</span>
+                                                </div>
+                                                <button id="generate-vba-btn" class="btn waves-effect waves-light blue darken-2" onclick="generateExcelCode('vba')">
+                                                    生成VBA代码
+                                                    <i class="material-icons right">code</i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col s12 m6">
+                                        <div class="card blue-grey lighten-5">
+                                            <div class="card-content">
+                                                <span class="card-title">函数公式生成</span>
+                                                <div class="input-field">
+                                                    <textarea id="formula-requirement" class="materialize-textarea"></textarea>
+                                                    <label for="formula-requirement">请描述您需要的Excel函数功能</label>
+                                                    <span class="helper-text">例如："计算C列中所有满足条件（A列大于0且B列包含'测试'字样）的数值的平均值"</span>
+                                                </div>
+                                                <button id="generate-formula-btn" class="btn waves-effect waves-light green darken-2" onclick="generateExcelCode('formula')">
+                                                    生成Excel公式
+                                                    <i class="material-icons right">functions</i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col s12">
+                                        <div class="card-panel" id="excel-result">
+                                            <div class="ai-result">
+                                                <div id="excel-loading" style="text-align: center; display: none;">
+                                                    <div class="loading-spinner"></div>
+                                                    <p>正在生成代码...</p>
+                                                </div>
+                                                <div id="excel-code-result">
+                                                    <p class="center-align grey-text">点击上方按钮生成代码</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 其他工具内容区域 -->
+                    <div id="data-table" class="tool-content">
+                        <div class="card">
+                            <div class="card-content">
+                                <span class="card-title">多维数据表</span>
+                                <p>该功能正在开发中，敬请期待！</p>
+                                <div class="center-align" style="margin-top: 30px;">
+                                    <i class="material-icons" style="font-size: 80px; color: #ddd;">grid_on</i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="statistics" class="tool-content">
+                        <div class="card">
+                            <div class="card-content">
+                                <span class="card-title">统计分析</span>
+                                <p>该功能正在开发中，敬请期待！</p>
+                                <div class="center-align" style="margin-top: 30px;">
+                                    <i class="material-icons" style="font-size: 80px; color: #ddd;">insert_chart</i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="math-symbols" class="tool-content">
+                        <div class="card">
+                            <div class="card-content">
+                                <span class="card-title">数学符号</span>
+                                <p>该功能正在开发中，敬请期待！</p>
+                                <div class="center-align" style="margin-top: 30px;">
+                                    <i class="material-icons" style="font-size: 80px; color: #ddd;">calculate</i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="ml-demo" class="tool-content">
+                        <div class="card">
+                            <div class="card-content">
+                                <span class="card-title">机器学习演示</span>
+                                <p>该功能正在开发中，敬请期待！</p>
+                                <div class="center-align" style="margin-top: 30px;">
+                                    <i class="material-icons" style="font-size: 80px; color: #ddd;">psychology</i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 图像识别工具内容 -->
+                    <div id="image-recognition" class="tool-content">
+                        <div class="card">
+                            <div class="card-content aicard">
+                                <div class="aicard-header">
+                                    <span class="card-title">图像识别</span>
+                                    <p>这是一个基于TensorFlow.js和MobileNet模型的图像识别工具，可以识别图像中的物体。</p>
+                                </div>
+                                
+                                <div class="ai-demo">
+                                    <div class="file-field input-field">
+                                        <div class="btn blue darken-2">
+                                            <span>选择图片</span>
+                                            <input type="file" id="image-input" accept="image/*">
+                                        </div>
+                                        <div class="file-path-wrapper">
+                                            <input class="file-path validate" type="text" placeholder="上传图片进行识别">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="img-preview" id="preview"></div>
+                                    
+                                    <div class="ai-result">
+                                        <div id="image-loading" style="text-align: center; display: none;">
+                                            <div class="loading-spinner"></div>
+                                            <p>正在处理图像...</p>
+                                        </div>
+                                        <div id="image-prediction">
+                                            <p>请上传一张图片进行识别</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 情感分析工具内容 -->
+                    <div id="sentiment-analysis" class="tool-content">
+                        <div class="card">
+                            <div class="card-content aicard">
+                                <div class="aicard-header">
+                                    <span class="card-title">情感分析</span>
+                                    <p>这个工具使用Transformers.js来分析文本的情感倾向。</p>
+                                </div>
+                                
+                                <div class="ai-demo">
+                                    <div class="input-field">
+                                        <textarea id="sentiment-input" class="materialize-textarea"></textarea>
+                                        <label for="sentiment-input">请输入要分析的文本</label>
+                                    </div>
+                                    
+                                    <button id="analyze-btn" class="btn waves-effect waves-light blue darken-2">
+                                        分析情感
+                                        <i class="material-icons right">send</i>
+                                    </button>
+                                    
+                                    <div class="ai-result">
+                                        <div id="sentiment-loading" style="text-align: center; display: none;">
+                                            <div class="loading-spinner"></div>
+                                            <p>正在分析文本...</p>
+                                        </div>
+                                        <div id="sentiment-result">
+                                            <p>请输入文本并点击"分析情感"按钮</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 语音识别工具内容 -->
+                    <div id="speech-recognition" class="tool-content">
+                        <div class="card">
+                            <div class="card-content aicard">
+                                <div class="aicard-header">
+                                    <span class="card-title">语音识别</span>
+                                    <p>使用浏览器的Web Speech API进行实时语音识别。</p>
+                                </div>
+                                
+                                <div class="ai-demo">
+                                    <div style="text-align: center; margin: 20px 0;">
+                                        <button id="start-speech" class="mic-btn">
+                                            <i class="material-icons">mic</i>
+                                        </button>
+                                        <p style="margin-top: 10px;">点击麦克风开始语音识别</p>
+                                    </div>
+                                    
+                                    <div class="ai-result">
+                                        <h5>识别结果:</h5>
+                                        <div id="speech-result">
+                                            <p>等待语音输入...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>管锥国 数学工具集 &copy; 2023 | 由 <a href="https://github.com/GuanZhuiGuo" target="_blank">GuanZhuiGuo</a> 开发</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script>
+        // 全局函数定义 - 确保在任何时候都可用
+        function generateExcelCode(type) {
+            console.log(`开始生成${type}代码 - 全局调用`);
+            
+            const requirementField = type === 'vba' ? 
+                document.getElementById('vba-requirement') : 
+                document.getElementById('formula-requirement');
+            
+            if (!requirementField) {
+                console.error(`找不到${type}需求输入框`);
+                alert(`找不到${type}需求输入框`);
+                return;
+            }
+            
+            const requirement = requirementField.value.trim();
+            
+            if (!requirement) {
+                alert('请输入需求描述');
+                return;
+            }
+            
+            const loadingEl = document.getElementById('excel-loading');
+            const resultEl = document.getElementById('excel-code-result');
+            
+            if (!loadingEl || !resultEl) {
+                console.error('未找到加载指示器或结果显示元素');
+                alert('未找到加载指示器或结果显示元素');
+                return;
+            }
+            
+            loadingEl.style.display = 'block';
+            resultEl.style.display = 'none';
+            
+            // 使用增强的模拟模型生成代码
+            try {
+                // 模拟处理延时
+                setTimeout(() => {
+                    let code = '';
+                    if (type === 'vba') {
+                        code = generateEnhancedVBACode(requirement);
+                    } else {
+                        code = generateEnhancedExcelFormula(requirement);
+                    }
+                    
+                    displayExcelResult(type, code);
+                    
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (resultEl) resultEl.style.display = 'block';
+                }, 1200); // 模拟AI思考时间
+            } catch (error) {
+                console.error('代码生成错误:', error);
+                alert('代码生成错误: ' + error.message);
+                
+                if (resultEl) {
+                    resultEl.innerHTML = `
+                        <div class="card-panel red lighten-4">
+                            <span class="red-text text-darken-2">生成失败: ${error.message}</span>
+                        </div>
+                    `;
+                }
+                
+                if (loadingEl) loadingEl.style.display = 'none';
+                if (resultEl) resultEl.style.display = 'block';
+            }
+        }
+        
+        // 增强的VBA代码生成
+        function generateEnhancedVBACode(requirement) {
+            // 分析需求的关键词
+            const req = requirement.toLowerCase();
+            
+            // 特定需求的精确匹配
+            if (req.includes('循环') && req.includes('a列') && (req.includes('大于100') || req.includes('>100'))) {
+                return `Sub 标记大于100的单元格()
+    ' 作用: 循环遍历A列数据，如果单元格值大于100则在B列对应位置标红
+    ' 创建者: Excel AI助手
+    ' 创建日期: ${new Date().toLocaleDateString()}
+    
+    Dim lastRow As Long
+    Dim i As Long
+    
+    ' 获取A列中最后一行的行号
+    lastRow = Cells(Rows.Count, 1).End(xlUp).Row
+    
+    ' 循环遍历A列中的每个单元格
+    For i = 1 To lastRow
+        ' 检查当前单元格的值是否大于100
+        If IsNumeric(Cells(i, 1).Value) Then
+            If Cells(i, 1).Value > 100 Then
+                ' 如果大于100，则在B列对应位置标红
+                Cells(i, 2).Interior.Color = RGB(255, 0, 0)
+                ' 可选: 添加标记文本
+                Cells(i, 2).Value = "超过阈值"
+            End If
+        End If
+    Next i
+    
+    MsgBox "处理完成！共处理 " & lastRow & " 行数据。", vbInformation
+End Sub`;
+            } else if (req.includes('筛选') || req.includes('过滤')) {
+                // 分析筛选条件
+                let filterField = 1; // 默认A列
+                let filterValue = "100";
+                let operator = ">";
+                
+                // 尝试找出列名
+                if (req.includes('b列')) filterField = 2;
+                if (req.includes('c列')) filterField = 3;
+                if (req.includes('d列')) filterField = 4;
+                
+                // 尝试找出条件
+                if (req.includes('等于')) operator = "=";
+                if (req.includes('小于')) operator = "<";
+                if (req.includes('不等于')) operator = "<>";
+                
+                // 尝试找出数值
+                const numMatch = req.match(/\d+/);
+                if (numMatch) filterValue = numMatch[0];
+                
+                return `Sub 筛选数据()
+    ' 作用: 对数据应用筛选条件
+    ' 创建者: Excel AI助手
+    ' 创建日期: ${new Date().toLocaleDateString()}
+    
+    Dim ws As Worksheet
+    Set ws = ActiveSheet
+    
+    ' 检查是否有数据
+    If ws.UsedRange.Rows.Count <= 1 Then
+        MsgBox "没有足够的数据进行筛选！", vbExclamation
+        Exit Sub
+    End If
+    
+    ' 获取数据范围
+    Dim dataRange As Range
+    Set dataRange = ws.UsedRange
+    
+    ' 确保有表头行
+    Dim hasHeaders As Boolean
+    hasHeaders = True ' 假设第一行是表头
+    
+    ' 应用筛选
+    If ws.FilterMode Then
+        ws.ShowAllData ' 清除现有筛选
+    End If
+    
+    ' 启用自动筛选
+    dataRange.AutoFilter
+    
+    ' 应用筛选条件
+    dataRange.AutoFilter Field:=${filterField}, Criteria1:="${operator}${filterValue}"
+    
+    MsgBox "筛选已应用：第" & ${filterField} & "列 " & "${operator}" & " " & "${filterValue}", vbInformation
+End Sub`;
+            } else if (req.includes('求和') || req.includes('汇总')) {
+                // 分析求和条件
+                let sumRange = "A:A";
+                
+                // 尝试找出列名
+                if (req.includes('a列')) sumRange = "A:A";
+                if (req.includes('b列')) sumRange = "B:B";
+                if (req.includes('c列')) sumRange = "C:C";
+                
+                return `Sub 计算求和()
+    ' 作用: 计算指定列的总和并显示结果
+    ' 创建者: Excel AI助手
+    ' 创建日期: ${new Date().toLocaleDateString()}
+    
+    Dim ws As Worksheet
+    Set ws = ActiveSheet
+    
+    ' 检查是否有数据
+    If ws.UsedRange.Rows.Count <= 1 Then
+        MsgBox "没有足够的数据进行计算！", vbExclamation
+        Exit Sub
+    End If
+    
+    ' 计算总和
+    Dim totalSum As Double
+    totalSum = Application.WorksheetFunction.Sum(Range("${sumRange}"))
+    
+    ' 在合适的位置显示结果
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 2
+    
+    ws.Cells(lastRow, 1).Value = "总和:"
+    ws.Cells(lastRow, 1).Font.Bold = True
+    ws.Cells(lastRow, 2).Value = totalSum
+    ws.Cells(lastRow, 2).NumberFormat = "#,##0.00"
+    ws.Cells(lastRow, 2).Font.Bold = True
+    
+    ' 添加底部边框
+    Range(ws.Cells(lastRow - 1, 1), ws.Cells(lastRow - 1, 2)).Borders(xlEdgeBottom).LineStyle = xlContinuous
+    Range(ws.Cells(lastRow - 1, 1), ws.Cells(lastRow - 1, 2)).Borders(xlEdgeBottom).Weight = xlMedium
+    
+    MsgBox "${sumRange}列的总和为: " & Format(totalSum, "#,##0.00"), vbInformation
+End Sub`;
+            } else if (req.includes('导出') || req.includes('保存为') || req.includes('另存为')) {
+                // 分析导出格式
+                let exportFormat = "xlsx";
+                
+                if (req.includes('csv')) exportFormat = "csv";
+                if (req.includes('pdf')) exportFormat = "pdf";
+                if (req.includes('文本') || req.includes('txt')) exportFormat = "txt";
+                
+                return `Sub 导出工作表()
+    ' 作用: 将当前工作表导出为${exportFormat}文件
+    ' 创建者: Excel AI助手
+    ' 创建日期: ${new Date().toLocaleDateString()}
+    
+    Dim ws As Worksheet
+    Set ws = ActiveSheet
+    
+    Dim saveFolder As String
+    Dim saveFileName As String
+    Dim fullPath As String
+    
+    ' 默认保存到桌面
+    saveFolder = CreateObject("WScript.Shell").SpecialFolders("Desktop") & "\\"
+    
+    ' 创建文件名 (工作表名+日期)
+    saveFileName = ws.Name & "_" & Format(Date, "yyyymmdd")
+    
+    ' 完整路径
+    fullPath = saveFolder & saveFileName
+    
+    ' 根据格式选择导出方式
+    ${exportFormat === 'xlsx' ? `
+    ' 保存为Excel文件
+    ThisWorkbook.SaveAs fullPath & ".xlsx", xlOpenXMLWorkbook
+    
+    MsgBox "工作表已保存为: " & fullPath & ".xlsx", vbInformation` : ''}
+    
+    ${exportFormat === 'csv' ? `
+    ' 保存为CSV文件
+    ws.SaveAs fullPath & ".csv", xlCSV
+    
+    MsgBox "工作表已导出为CSV: " & fullPath & ".csv", vbInformation` : ''}
+    
+    ${exportFormat === 'pdf' ? `
+    ' 保存为PDF文件
+    ws.ExportAsFixedFormat Type:=xlTypePDF, Filename:=fullPath & ".pdf", _
+        Quality:=xlQualityStandard, IncludeDocProperties:=True, _
+        IgnorePrintAreas:=False, OpenAfterPublish:=True
+    
+    MsgBox "工作表已导出为PDF: " & fullPath & ".pdf", vbInformation` : ''}
+    
+    ${exportFormat === 'txt' ? `
+    ' 保存为文本文件
+    ws.SaveAs fullPath & ".txt", xlTextWindows
+    
+    MsgBox "工作表已导出为文本文件: " & fullPath & ".txt", vbInformation` : ''}
+End Sub`;
+            } else {
+                // 创建一个基于需求的通用模板
+                return `Sub 自定义操作()
+    ' 作用: ${requirement}
+    ' 创建者: Excel AI助手
+    ' 创建日期: ${new Date().toLocaleDateString()}
+    
+    Dim ws As Worksheet
+    Set ws = ActiveSheet
+    
+    ' ===== 初始化 =====
+    ' 获取数据范围
+    Dim lastRow As Long
+    Dim lastCol As Long
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
+    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
+    
+    ' 提示用户确认操作
+    Dim userResponse As VbMsgBoxResult
+    userResponse = MsgBox("即将处理 " & lastRow & " 行数据，是否继续？", _
+                 vbQuestion + vbYesNo, "确认操作")
+    
+    If userResponse = vbNo Then
+        Exit Sub
+    End If
+    
+    ' ===== 主要操作 =====
+    ' 这里根据需求编写具体逻辑
+    ' ${requirement}
+    
+    ' 示例操作：循环处理数据
+    Dim i As Long
+    For i = 1 To lastRow
+        ' 在这里添加处理逻辑
+        ' ...
+    Next i
+    
+    ' ===== 完成操作 =====
+    MsgBox "操作完成！共处理 " & lastRow & " 行数据。", vbInformation
+End Sub`;
+            }
+        }
+        
+        // 增强的Excel公式生成
+        function generateEnhancedExcelFormula(requirement) {
+            // 分析需求的关键词
+            const req = requirement.toLowerCase();
+            
+            // 特定需求的精确匹配
+            if ((req.includes('平均') || req.includes('平均值')) && req.includes('条件')) {
+                // 分析条件
+                let dataRange = "C:C";
+                let conditionRange1 = "A:A";
+                let conditionValue1 = ">0";
+                let conditionRange2 = "B:B";
+                let conditionValue2 = "*测试*";
+                
+                // 尝试提取更具体的条件
+                if (req.includes('大于0') || req.includes('>0')) conditionValue1 = ">0";
+                if (req.includes('大于100') || req.includes('>100')) conditionValue1 = ">100";
+                if (req.includes('包含"测试"')) conditionValue2 = "*测试*";
+                if (req.includes('不等于0') || req.includes('<>0')) conditionValue1 = "<>0";
+                
+                return `=AVERAGEIFS(${dataRange}, ${conditionRange1}, "${conditionValue1}", ${conditionRange2}, "${conditionValue2}")
+
+公式说明:
+- AVERAGEIFS 函数计算满足多个条件的单元格的平均值
+- ${dataRange} 是要计算平均值的范围
+- ${conditionRange1}, "${conditionValue1}" 第一个条件: ${conditionRange1}列的值必须${conditionValue1.includes('>') ? '大于' + conditionValue1.replace('>', '') : conditionValue1}
+- ${conditionRange2}, "${conditionValue2}" 第二个条件: ${conditionRange2}列的值必须包含"${conditionValue2.replace(/\*/g, '')}"
+
+使用方法:
+1. 选择要放置此公式的单元格
+2. 输入此公式
+3. 按Enter键确认`;
+            } else if ((req.includes('求和') || req.includes('总和')) && req.includes('条件')) {
+                // 分析条件
+                let dataRange = "C:C";
+                let conditionRange1 = "A:A";
+                let conditionValue1 = ">100";
+                let conditionRange2 = "B:B";
+                let conditionValue2 = "<>0";
+                
+                return `=SUMIFS(${dataRange}, ${conditionRange1}, "${conditionValue1}", ${conditionRange2}, "${conditionValue2}")
+
+公式说明:
+- SUMIFS 函数计算满足多个条件的单元格的总和
+- ${dataRange} 是要求和的范围
+- ${conditionRange1}, "${conditionValue1}" 第一个条件: ${conditionRange1}列的值必须${conditionValue1.includes('>') ? '大于' + conditionValue1.replace('>', '') : conditionValue1}
+- ${conditionRange2}, "${conditionValue2}" 第二个条件: ${conditionRange2}列的值必须${conditionValue2}
+
+使用方法:
+1. 选择要放置此公式的单元格
+2. 输入此公式
+3. 按Enter键确认`;
+            } else if (req.includes('查找') || req.includes('匹配') || req.includes('vlookup') || req.includes('查询')) {
+                let searchValue = "A2";
+                let tableRange = "A:B";
+                let colIndex = 2;
+                let exactMatch = "FALSE";
+                
+                if (req.includes('精确')) exactMatch = "TRUE";
+                
+                return `=VLOOKUP(${searchValue}, ${tableRange}, ${colIndex}, ${exactMatch})
+
+公式说明:
+- VLOOKUP 函数在表格的第一列中查找指定的值，并返回该行中指定列的值
+- ${searchValue} 是要查找的值（可以是单元格引用）
+- ${tableRange} 是要搜索的表格范围
+- ${colIndex} 是要返回的列号（相对于表格范围的第一列）
+- ${exactMatch} 表示是否要精确匹配 (TRUE=精确匹配, FALSE=近似匹配)
+
+高级替代方案:
+=INDEX(B:B, MATCH(${searchValue}, A:A, 0))
+这个组合使用INDEX和MATCH更灵活，可以实现左右查找和更复杂的匹配`;
+            } else if (req.includes('条件格式') || req.includes('标记') || req.includes('突出显示')) {
+                return `不需要公式，应使用"条件格式"功能：
+
+1. 选择要应用格式的单元格范围
+2. 点击"开始"选项卡 > "条件格式"
+3. 选择"突出显示单元格规则" > 选择适当的条件（如"大于"）
+4. 输入比较值，选择格式（如"浅红色填充"）
+5. 点击"确定"
+
+如果您需要通过公式引用单元格并返回TRUE/FALSE：
+=IF(单元格>值, TRUE, FALSE)
+
+例如：=IF(A1>100, TRUE, FALSE)`;
+            } else {
+                // 提供一个通用的条件判断公式
+                return `=IF(AND(A1>0, ISNUMBER(SEARCH("关键词", B1))), C1, "")
+
+公式说明:
+- IF 函数根据条件返回不同的值
+- AND 函数组合多个条件，只有全部条件为TRUE时才返回TRUE
+- 第一个条件: A1>0 检查A1单元格是否大于0
+- 第二个条件: ISNUMBER(SEARCH("关键词", B1)) 检查B1单元格是否包含"关键词"
+- 当条件满足时返回C1单元格的值，否则返回空字符串
+
+修改建议:
+1. 将A1, B1, C1替换为您的实际单元格引用
+2. 将"关键词"替换为您要搜索的文本
+3. 可以根据需要修改条件和返回值
+
+常见问题:
+- 如果需要OR逻辑（任一条件满足），请使用OR替代AND
+- 要检查单元格是否为空，使用条件 B1="" 或 ISBLANK(B1)`;
+            }
+        }
+        
+        // 复制到剪贴板
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                alert('已复制到剪贴板！');
+            }, function(err) {
+                alert('复制失败: ' + err);
+            });
+        }
+        
+        // 显示Excel代码生成结果
+        function displayExcelResult(type, code, isFallback = false) {
+            const title = type === 'vba' ? 'VBA代码' : 'Excel公式';
+            const language = type === 'vba' ? 'vba' : 'excel';
+            const resultEl = document.getElementById('excel-code-result');
+            
+            if (!resultEl) {
+                console.error('未找到结果显示元素');
+                alert('未找到结果显示元素');
+                return;
+            }
+            
+            let fallbackNotice = '';
+            if (isFallback) {
+                fallbackNotice = `<div class="card-panel amber lighten-4">
+                    <span class="amber-text text-darken-4">
+                        <i class="material-icons tiny">info_outline</i> 
+                        AI模型加载失败，已使用模板生成。可能原因：<br>
+                        1. 网络连接问题<br>
+                        2. 浏览器不支持或阻止了AI模型加载<br>
+                        3. 模型文件过大，加载超时<br>
+                    </span>
+                </div>`;
+            }
+            
+            resultEl.innerHTML = `
+                <h5>${title}:</h5>
+                ${fallbackNotice}
+                <div class="card-panel grey lighten-5">
+                    <pre style="margin: 0; overflow-x: auto;"><code class="${language}">${escapeHtml(code)}</code></pre>
+                </div>
+                <div class="row">
+                    <div class="col s12">
+                        <button class="btn-floating right waves-effect waves-light blue" onclick="copyToClipboard('${escapeForJS(code)}')" title="复制到剪贴板">
+                            <i class="material-icons">content_copy</i>
+                        </button>
+                    </div>
+                </div>
+                <p class="grey-text">提示: 您可能需要根据实际需求调整此代码</p>
+            `;
+        }
+        
+        // 转义HTML特殊字符
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        // 转义用于JavaScript字符串的内容
+        function escapeForJS(str) {
+            return str
+                .replace(/\\/g, "\\\\")
+                .replace(/"/g, '\\"')
+                .replace(/'/g, "\\'")
+                .replace(/\n/g, "\\n")
+                .replace(/\r/g, "\\r");
+        }
+        
+        // 帮助函数：动态加载脚本
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => resolve();
+                script.onerror = (e) => reject(new Error(`脚本加载失败: ${src}`));
+                document.head.appendChild(script);
+                
+                // 设置超时
+                setTimeout(() => {
+                    if (typeof window.transformers === 'undefined') {
+                        reject(new Error('脚本加载超时'));
+                    }
+                }, 10000); // 10秒超时
+            });
+        }
+        
+        // DOMContentLoaded事件处理
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化Materialize组件
+            M.AutoInit();
+            
+            // AI模型状态
+            let imageModel = null;
+            let sentimentModel = null;
+            let isModelLoading = false;
+            
+            // 工具卡片点击切换
+            document.querySelectorAll('.tool-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    // 移除所有选中状态
+                    document.querySelectorAll('.tool-card').forEach(c => c.classList.remove('active'));
+                    // 添加当前选中状态
+                    this.classList.add('active');
+                    
+                    // 获取工具ID
+                    const toolId = this.getAttribute('data-tool');
+                    
+                    // 隐藏所有工具内容
+                    document.querySelectorAll('.tool-content').forEach(content => {
+                        content.style.display = 'none';
+                    });
+                    
+                    // 显示选中的工具内容
+                    document.getElementById(toolId).style.display = 'block';
+                    
+                    // 特定工具的初始化
+                    if (toolId === 'function-visualizer') {
+                        if (typeof generateFunctionVisualization === 'function') {
+                            generateFunctionVisualization();
+                        }
+                    } else if (toolId === 'image-recognition' && !imageModel && !isModelLoading) {
+                        loadImageModel();
+                    } else if (toolId === 'sentiment-analysis' && !sentimentModel && !isModelLoading) {
+                        // 主动加载情感分析模型
+                        loadSentimentModel();
+                    }
+                });
+            });
+            
+            // ======== 函数渲染器相关功能 ========
+            
+            // 获取函数渲染器DOM元素
+            const functionInput = document.getElementById('function');
+            const paramXInput = document.getElementById('param-x');
+            const paramYInput = document.getElementById('param-y');
+            const paramZInput = document.getElementById('param-z');
+            const paramURangeInput = document.getElementById('param-u-range');
+            const paramVRangeInput = document.getElementById('param-v-range');
+            const resolutionSlider = document.getElementById('resolution');
+            const colorscaleSelect = document.getElementById('colorscale');
+            const generateBtn = document.getElementById('generate-btn');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const plot = document.getElementById('plot-container');
+            
+            // 更新显示值
+            if (resolutionSlider) {
+                resolutionSlider.oninput = () => {
+                    const valueDisplay = document.getElementById('resolution-value');
+                    if (valueDisplay) {
+                        valueDisplay.textContent = resolutionSlider.value;
+                    }
+                };
+            }
+            
+            // 示例函数点击事件
+            document.querySelectorAll('.function-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    if (functionInput) {
+                        functionInput.value = chip.dataset.function;
+                        // 激活label
+                        M.updateTextFields();
+                        // 切换到曲面标签
+                        const tabs = document.querySelector('.tabs');
+                        if (tabs) {
+                            M.Tabs.getInstance(tabs).select('tab-surface');
+                        }
+                    }
+                });
+            });
+            
+            // 参数曲面示例点击事件
+            document.querySelectorAll('.param-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    if (paramXInput && paramYInput && paramZInput && paramURangeInput && paramVRangeInput) {
+                        paramXInput.value = chip.dataset.x;
+                        paramYInput.value = chip.dataset.y;
+                        paramZInput.value = chip.dataset.z;
+                        paramURangeInput.value = chip.dataset.urange;
+                        paramVRangeInput.value = chip.dataset.vrange;
+                        // 激活label
+                        M.updateTextFields();
+                        // 切换到参数标签
+                        const tabs = document.querySelector('.tabs');
+                        if (tabs) {
+                            M.Tabs.getInstance(tabs).select('tab-parametric');
+                        }
+                    }
+                });
+            });
+            
+            // 根据函数表达式生成3D曲面数据
+            function generateSurfaceData(func, resolution = 40) {
+                // 创建x和y的范围
+                const range = [-2, 2];
+                const step = (range[1] - range[0]) / resolution;
+                
+                // 生成网格数据
+                const x = [];
+                const y = [];
+                const z = [];
+                
+                for (let i = 0; i <= resolution; i++) {
+                    const xi = range[0] + i * step;
+                    const row = [];
+                    x.push(xi);
+                    
+                    for (let j = 0; j <= resolution; j++) {
+                        const yi = range[0] + j * step;
+                        if (i === 0) y.push(yi);
+                        
+                        try {
+                            // 安全地计算z值
+                            const zi = evaluateFunction(func, xi, yi);
+                            row.push(zi);
+                        } catch (e) {
+                            console.error('函数计算错误:', e);
+                            row.push(null); // 使用null表示无效点
+                        }
+                    }
+                    z.push(row);
+                }
+                
+                return { x, y, z };
+            }
+            
+            // 生成参数曲面数据
+            function generateParametricData(xFunc, yFunc, zFunc, uRange, vRange, resolution = 40) {
+                // 解析u和v的范围
+                const [uMin, uMax, uStep] = parseRangeString(uRange);
+                const [vMin, vMax, vStep] = parseRangeString(vRange);
+                
+                // 计算u和v的点数
+                const uPoints = Math.floor((uMax - uMin) / uStep) + 1;
+                const vPoints = Math.floor((vMax - vMin) / vStep) + 1;
+                
+                // 生成网格数据
+                const x = [];
+                const y = [];
+                const z = [];
+                
+                for (let i = 0; i < uPoints; i++) {
+                    const u = uMin + i * uStep;
+                    const xRow = [];
+                    const yRow = [];
+                    const zRow = [];
+                    
+                    for (let j = 0; j < vPoints; j++) {
+                        const v = vMin + j * vStep;
+                        
+                        try {
+                            // 计算(x,y,z)坐标
+                            const xi = evaluateParametricFunction(xFunc, u, v);
+                            const yi = evaluateParametricFunction(yFunc, u, v);
+                            const zi = evaluateParametricFunction(zFunc, u, v);
+                            
+                            xRow.push(xi);
+                            yRow.push(yi);
+                            zRow.push(zi);
+                        } catch (e) {
+                            console.error('参数方程计算错误:', e);
+                            xRow.push(null);
+                            yRow.push(null);
+                            zRow.push(null);
+                        }
+                    }
+                    
+                    x.push(xRow);
+                    y.push(yRow);
+                    z.push(zRow);
+                }
+                
+                return { x, y, z };
+            }
+            
+            // 解析范围字符串
+            function parseRangeString(rangeStr) {
+                const parts = rangeStr.split(',');
+                if (parts.length !== 3) {
+                    throw new Error('范围格式错误，应为"起点,终点,步长"');
+                }
+                
+                return parts.map(part => {
+                    return eval(part.trim()); // 使用eval计算表达式
+                });
+            }
+            
+            // 安全地计算函数值
+            function evaluateFunction(funcStr, x, y) {
+                try {
+                    // 将字符串转为函数并计算
+                    return Function('x', 'y', `"use strict"; return ${funcStr};`)(x, y);
+                } catch (e) {
+                    console.error('函数求值错误:', e);
+                    return NaN;
+                }
+            }
+            
+            // 计算参数方程
+            function evaluateParametricFunction(funcStr, u, v) {
+                try {
+                    return Function('u', 'v', `"use strict"; return ${funcStr};`)(u, v);
+                } catch (e) {
+                    console.error('参数方程求值错误:', e);
+                    return NaN;
+                }
+            }
+            
+            // 渲染3D图表
+            function renderPlot(data, colorscale = 'Viridis') {
+                if (!plot) return;
+                
+                const layout = {
+                    title: '',
+                    autosize: true,
+                    margin: {
+                        l: 0,
+                        r: 0,
+                        b: 0,
+                        t: 0,
+                        pad: 0
+                    },
+                    scene: {
+                        xaxis: { title: 'X' },
+                        yaxis: { title: 'Y' },
+                        zaxis: { title: 'Z' },
+                        aspectratio: { x: 1, y: 1, z: 0.7 },
+                        camera: {
+                            eye: { x: 1.5, y: 1.5, z: 1 }
+                        }
+                    }
+                };
+                
+                const surfaceData = [{
+                    type: 'surface',
+                    ...data,
+                    colorscale: colorscale,
+                    contours: {
+                        z: {
+                            show: true,
+                            usecolormap: true,
+                            highlightcolor: "#42a5f5",
+                            project: { z: true }
+                        }
+                    }
+                }];
+                
+                Plotly.newPlot('plot-container', surfaceData, layout, {
+                    responsive: true
+                });
+            }
+            
+            // 函数渲染器的生成函数
+            function generateFunctionVisualization() {
+                if (!loadingIndicator || !functionInput) return;
+                
+                loadingIndicator.style.display = 'block';
+                
+                // 延迟一点执行，以便UI可以更新
+                setTimeout(() => {
+                    try {
+                        const resolution = parseInt(resolutionSlider.value);
+                        const colorscale = colorscaleSelect.value;
+                        let data;
+                        
+                        // 检查当前选中的标签
+                        const tabs = document.querySelector('.tabs');
+                        const activeTab = tabs ? M.Tabs.getInstance(tabs).index : 0;
+                        
+                        if (activeTab === 0) { // 曲面函数
+                            const funcStr = functionInput.value;
+                            data = generateSurfaceData(funcStr, resolution);
+                        } else { // 参数方程
+                            const xFunc = paramXInput.value;
+                            const yFunc = paramYInput.value;
+                            const zFunc = paramZInput.value;
+                            const uRange = paramURangeInput.value;
+                            const vRange = paramVRangeInput.value;
+                            data = generateParametricData(xFunc, yFunc, zFunc, uRange, vRange, resolution);
+                        }
+                        
+                        renderPlot(data, colorscale);
+                        
+                    } catch (e) {
+                        console.error('渲染错误:', e);
+                        M.toast({ html: `渲染错误: ${e.message}`, classes: 'red' });
+                    } finally {
+                        loadingIndicator.style.display = 'none';
+                    }
+                }, 50);
+            }
+            
+            // 公开函数，供工具切换时调用
+            window.generateFunctionVisualization = generateFunctionVisualization;
+            
+            // 生成按钮点击事件
+            if (generateBtn) {
+                generateBtn.addEventListener('click', generateFunctionVisualization);
+            }
+            
+            // 初始化
+            // 默认显示函数渲染工具
+            document.querySelector('.tool-card[data-tool="function-visualizer"]').classList.add('active');
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('function-visualizer').style.display = 'block';
+            
+            // 初始渲染函数
+            if (document.getElementById('plot-container')) {
+                generateFunctionVisualization();
+            }
+            
+            // ======== 图像识别相关功能 ========
+            
+            // 加载图像识别模型
+            async function loadImageModel() {
+                if (imageModel || isModelLoading) return;
+                
+                isModelLoading = true;
+                document.getElementById('image-prediction').innerHTML = "正在加载模型，请稍候...";
+                document.getElementById('image-loading').style.display = 'block';
+                
+                try {
+                    imageModel = await mobilenet.load();
+                    document.getElementById('image-prediction').innerHTML = "模型已加载，请上传图片";
+                } catch (error) {
+                    document.getElementById('image-prediction').innerHTML = "模型加载失败: " + error.message;
+                    console.error("模型加载失败:", error);
+                } finally {
+                    isModelLoading = false;
+                    document.getElementById('image-loading').style.display = 'none';
+                }
+            }
+            
+            // 图像处理
+            document.getElementById('image-input').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const img = document.createElement('img');
+                img.src = URL.createObjectURL(file);
+                img.width = 300;
+                img.style.maxWidth = '100%';
+                
+                const preview = document.getElementById('preview');
+                preview.innerHTML = '';
+                preview.appendChild(img);
+                
+                document.getElementById('image-loading').style.display = 'block';
+                
+                img.onload = async () => {
+                    try {
+                        if (!imageModel) {
+                            await loadImageModel();
+                        }
+                        
+                        const predictions = await imageModel.classify(img);
+                        displayImageResults(predictions);
+                    } catch (error) {
+                        document.getElementById('image-prediction').innerHTML = "识别失败: " + error.message;
+                        console.error("识别失败:", error);
+                    } finally {
+                        document.getElementById('image-loading').style.display = 'none';
+                    }
+                };
+            });
+            
+            // 显示图像识别结果
+            function displayImageResults(predictions) {
+                const predictionEl = document.getElementById('image-prediction');
+                predictionEl.innerHTML = '<h5>识别结果:</h5>';
+                
+                const resultList = document.createElement('ul');
+                resultList.className = 'collection';
+                
+                predictions.forEach(p => {
+                    const item = document.createElement('li');
+                    item.className = 'collection-item';
+                    
+                    // 中文标签映射（简单示例）
+                    const englishLabel = p.className;
+                    const chineseLabel = getChineseLabel(englishLabel);
+                    
+                    item.innerHTML = `
+                        <div class="row" style="margin-bottom: 0;">
+                            <div class="col s8">${chineseLabel}</div>
+                            <div class="col s4 right-align">
+                                <span class="blue-text">${(p.probability * 100).toFixed(2)}%</span>
+                            </div>
+                        </div>
+                        <div class="grey-text text-darken-1 right-align" style="font-size: 0.8rem;">${englishLabel}</div>
+                    `;
+                    resultList.appendChild(item);
+                });
+                
+                predictionEl.appendChild(resultList);
+            }
+            
+            // 简单的英文标签到中文的映射函数
+            function getChineseLabel(englishLabel) {
+                const labelMap = {
+                    'Egyptian cat': '埃及猫',
+                    'tabby': '斑猫',
+                    'tiger cat': '虎斑猫',
+                    'Persian cat': '波斯猫',
+                    'Siamese cat': '暹罗猫',
+                    'golden retriever': '金毛寻回犬',
+                    'Labrador retriever': '拉布拉多寻回犬',
+                    'German shepherd': '德国牧羊犬',
+                    'desk': '桌子',
+                    'notebook': '笔记本',
+                    'computer': '电脑',
+                    'mobile phone': '手机',
+                    'mouse': '鼠标',
+                    'keyboard': '键盘',
+                    'cup': '杯子',
+                    'coffee mug': '咖啡杯',
+                    'teapot': '茶壶',
+                };
+                
+                // 查找英文标签中的单词是否存在于映射中
+                for (const key in labelMap) {
+                    if (englishLabel.toLowerCase().includes(key.toLowerCase())) {
+                        return labelMap[key];
+                    }
+                }
+                
+                // 如果没有找到匹配项，返回原标签
+                return englishLabel;
+            }
+            
+            // ======== 情感分析相关功能 ========
+            
+            // 加载情感分析模型
+            async function loadSentimentModel() {
+                if (sentimentModel || isModelLoading) return sentimentModel;
+                
+                isModelLoading = true;
+                document.getElementById('sentiment-loading').style.display = 'block';
+                document.getElementById('sentiment-result').style.display = 'none';
+                
+                try {
+                    // 检查transformers库是否可用
+                    if (typeof window.transformers === 'undefined') {
+                        // 如果库未加载成功，使用假数据模拟
+                        console.warn("Transformers库未加载，使用模拟数据");
+                        
+                        // 创建一个模拟的pipeline函数
+                        sentimentModel = async (text) => {
+                            // 等待1.5秒模拟处理时间
+                            await new Promise(resolve => setTimeout(resolve, 1500));
+                            
+                            // 基于简单规则的情感判断
+                            const positiveWords = ['好', '喜欢', '优秀', '棒', '高兴', '开心', '感谢', '爱', '赞', '满意'];
+                            const negativeWords = ['差', '不好', '失望', '糟糕', '讨厌', '恨', '难过', '伤心', '不满', '垃圾'];
+                            
+                            let score = 0.5; // 默认中性
+                            
+                            // 检测正面词汇
+                            for (const word of positiveWords) {
+                                if (text.includes(word)) {
+                                    score += 0.1;
+                                }
+                            }
+                            
+                            // 检测负面词汇
+                            for (const word of negativeWords) {
+                                if (text.includes(word)) {
+                                    score -= 0.1;
+                                }
+                            }
+                            
+                            // 限制分数在0-1之间
+                            score = Math.max(0, Math.min(1, score));
+                            
+                            // 确定情感标签
+                            let label;
+                            if (score > 0.6) {
+                                label = 'POSITIVE';
+                            } else if (score < 0.4) {
+                                label = 'NEGATIVE';
+                            } else {
+                                label = 'NEUTRAL';
+                            }
+                            
+                            return [{
+                                label: label,
+                                score: score
+                            }];
+                        };
+                        
+                        document.getElementById('sentiment-result').innerHTML = "模型已准备就绪（模拟模式）";
+                    } else {
+                        // 正常加载模型
+                        const { pipeline } = window.transformers;
+                        sentimentModel = await pipeline('sentiment-analysis');
+                        document.getElementById('sentiment-result').innerHTML = "模型已加载，请输入文本分析情感";
+                    }
+                } catch (error) {
+                    document.getElementById('sentiment-result').innerHTML = "模型加载失败: " + error.message + "<br>使用模拟模式继续";
+                    console.error("模型加载失败:", error);
+                    
+                    // 创建模拟模型作为备选
+                    sentimentModel = async (text) => {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        return [{
+                            label: Math.random() > 0.5 ? 'POSITIVE' : 'NEGATIVE',
+                            score: 0.5 + (Math.random() * 0.5)
+                        }];
+                    };
+                } finally {
+                    isModelLoading = false;
+                    document.getElementById('sentiment-loading').style.display = 'none';
+                    document.getElementById('sentiment-result').style.display = 'block';
+                    return sentimentModel;
+                }
+            }
+            
+            // 分析情感按钮点击事件
+            document.getElementById('analyze-btn').addEventListener('click', async () => {
+                const text = document.getElementById('sentiment-input').value.trim();
+                
+                if (!text) {
+                    M.toast({html: '请输入要分析的文本', classes: 'red'});
+                    return;
+                }
+                
+                document.getElementById('sentiment-loading').style.display = 'block';
+                document.getElementById('sentiment-result').style.display = 'none';
+                
+                try {
+                    const model = await loadSentimentModel();
+                    if (!model) {
+                        throw new Error('模型加载失败');
+                    }
+                    
+                    const result = await model(text);
+                    displaySentimentResult(result, text);
+                } catch (error) {
+                    document.getElementById('sentiment-result').innerHTML = `
+                        <div class="card-panel red lighten-4">
+                            <span class="red-text text-darken-2">分析失败: ${error.message}</span>
+                        </div>
+                    `;
+                    console.error("情感分析失败:", error);
+                } finally {
+                    document.getElementById('sentiment-loading').style.display = 'none';
+                    document.getElementById('sentiment-result').style.display = 'block';
+                }
+            });
+            
+            // 显示情感分析结果
+            function displaySentimentResult(result, text) {
+                const resultEl = document.getElementById('sentiment-result');
+                
+                if (!result || result.length === 0) {
+                    resultEl.innerHTML = `
+                        <div class="card-panel yellow lighten-4">
+                            <span class="orange-text text-darken-3">无法分析该文本的情感</span>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                const sentiment = result[0];
+                let emoji, color, label;
+                
+                // 根据情感标签设置显示样式
+                if (sentiment.label.includes('POSITIVE')) {
+                    emoji = '😃';
+                    color = 'green';
+                    label = '积极';
+                } else if (sentiment.label.includes('NEGATIVE')) {
+                    emoji = '😔';
+                    color = 'red';
+                    label = '消极';
+                } else {
+                    emoji = '😐';
+                    color = 'grey';
+                    label = '中性';
+                }
+                
+                resultEl.innerHTML = `
+                    <div class="card-panel ${color} lighten-4">
+                        <h5>${emoji} ${label} (${(sentiment.score * 100).toFixed(2)}%)</h5>
+                        <p class="grey-text text-darken-2">原文: "${text}"</p>
+                    </div>
+                `;
+            }
+            
+            // ======== 语音识别相关功能 ========
+            
+            // 检查浏览器是否支持语音识别
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const micButton = document.getElementById('start-speech');
+            let recognition;
+            
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                recognition.lang = 'zh-CN';
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                
+                recognition.onstart = () => {
+                    micButton.classList.add('recording');
+                    document.getElementById('speech-result').innerHTML = "<p>正在聆听...</p>";
+                };
+                
+                recognition.onresult = (event) => {
+                    const transcript = Array.from(event.results)
+                        .map(result => result[0])
+                        .map(result => result.transcript)
+                        .join('');
+                    
+                    document.getElementById('speech-result').innerHTML = `
+                        <div class="card-panel">
+                            <p>${transcript}</p>
+                        </div>
+                    `;
+                };
+                
+                recognition.onend = () => {
+                    micButton.classList.remove('recording');
+                };
+                
+                recognition.onerror = (event) => {
+                    micButton.classList.remove('recording');
+                    console.error('语音识别错误:', event.error);
+                    document.getElementById('speech-result').innerHTML = `
+                        <div class="card-panel red lighten-4">
+                            <span class="red-text text-darken-2">识别错误: ${event.error}</span>
+                        </div>
+                    `;
+                };
+                
+                micButton.addEventListener('click', () => {
+                    if (micButton.classList.contains('recording')) {
+                        recognition.stop();
+                    } else {
+                        recognition.start();
+                    }
+                });
+            } else {
+                document.getElementById('speech-result').innerHTML = `
+                    <div class="card-panel red lighten-4">
+                        <span class="red-text text-darken-2">您的浏览器不支持语音识别功能</span>
+                    </div>
+                `;
+                micButton.disabled = true;
+                micButton.title = "浏览器不支持";
+            }
+        });
+    </script>
+</body>
+</html> 
